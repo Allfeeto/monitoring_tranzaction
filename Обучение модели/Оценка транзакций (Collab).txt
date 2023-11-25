@@ -30,7 +30,7 @@ new_data_path = 'csvhack1.csv'
 new_df = pd.read_csv(new_data_path, delimiter=';')
 
 
-copied_data_path = 'copied_data.csv'
+copied_data_path = 'data.csv'
 shutil.copyfile(new_data_path, copied_data_path)
 
 
