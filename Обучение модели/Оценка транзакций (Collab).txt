@@ -1,0 +1,62 @@
+import torch
+import torch.nn as nn
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+import shutil  
+
+class FraudDetectionModel(nn.Module):
+    def __init__(self, input_size):
+        super(FraudDetectionModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64) 
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(64, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x)
+        return x
+
+
+your_input_size = 73  
+model = FraudDetectionModel(input_size=your_input_size)
+model.load_state_dict(torch.load('fraud_detection_model_epoch_594640.pth'))
+model.eval()
+
+
+new_data_path = 'csvhack1.csv'
+new_df = pd.read_csv(new_data_path, delimiter=';')
+
+
+copied_data_path = 'copied_data.csv'
+shutil.copyfile(new_data_path, copied_data_path)
+
+
+new_df['gender'] = new_df['gender'].map({'E': 0, 'F': 1, 'M': 2, 'U': -1})
+new_df.fillna(value=0, inplace=True)
+new_df = new_df.drop(['step', 'customer'], axis=1)
+new_df = pd.get_dummies(new_df, columns=['age', 'zipcodeOri', 'merchant', 'zipMerchant', 'category'], drop_first=True)
+scaler = StandardScaler()
+new_data = torch.tensor(scaler.fit_transform(new_df), dtype=torch.float32)
+
+
+with torch.no_grad():
+    predictions = model(new_data)
+
+
+predicted_labels = (predictions > 0.5).int().cpu().numpy()
+
+
+predicted_labels_flat = predicted_labels.flatten()
+
+
+existing_results = pd.read_csv(copied_data_path, delimiter=';')
+
+
+result_df = pd.DataFrame({'Fraud': predicted_labels_flat})
+combined_df = pd.concat([existing_results, result_df], axis=1)
+
+
+combined_df.to_csv(copied_data_path, sep=';', index=False)

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель мониторинга транзакций</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1em;
+        }
+
+        #dashboard-container {
+            display: flex;
+            flex-direction: row;
+            padding: 1em;
+        }
+
+        #dashboard, #transaction-monitoring, #manual-processing, #rule-creation {
+            flex: 1;
+            padding: 1em;
+            border: 1px solid #ccc;
+            margin: 1em;
+            box-sizing: border-box;
+            max-height: 600px;
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1em;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #333;
+            color: white;
+        }
+
+        .fraud-transaction {
+            background-color: #c05d5d;
+        }
+
+        .burger-menu {
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            width: 30px;
+            height: 20px;
+            margin-right: 10px;
+        }
+
+        .burger-line {
+            background-color: #333;
+            height: 3px;
+            width: 100%;
+            margin: 3px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Панель мониторинга транзакций</h1>
+    </header>
+
+    <div id="dashboard-container">
+        <div id="dashboard">
+            <h2>Дашборд</h2>
+            <canvas id="fraudPercentageChart" width="400" height="600"></canvas>
+            <ul>
+                <li>Статистика транзакций</li>
+                <li>Графики и диаграммы</li>
+                <li>Интересные факты</li>
+            </ul>
+        </div>
+
+        <div id="transaction-monitoring">
+            <h2>Мониторинг транзакций</h2>
+            <div id="filter-menu">
+                <div class="burger-menu" onclick="toggleFilterMenu()">
+                    <div class="burger-line"></div>
+                    <div class="burger-line"></div>
+                    <div class="burger-line"></div>
+                </div>
+                <div id="filter-options" class="hidden">
+                    <button onclick="filterTransactions('success')">Успешные</button>
+                    <button onclick="filterTransactions('fraud')">Мошеннические</button>
+                    <button onclick="resetFilter()">Сбросить фильтр</button>
+                </div>
+            </div>
+            <table id="transaction-table">
+               
+            </table>
+            <p id="successCount" class="hidden"></p>
+        </div>
+
+        <div id="manual-processing">
+            <h2>Ручная обработка</h2>
+            
+        </div>
+
+        <div id="rule-creation">
+            <h2>Создание правил</h2>
+           
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let chartInstance = null;
+
+        function toggleFilterMenu() {
+            const filterOptions = document.getElementById('filter-options');
+            filterOptions.classList.toggle('hidden');
+        }
+
+        function filterTransactions(filterType) {
+            const transactionTable = document.getElementById('transaction-table');
+            const successCountParagraph = document.getElementById('successCount');
+            const rows = transactionTable.getElementsByTagName('tr');
+
+            let successCount = 0;
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const isFraud = row.classList.contains('fraud-transaction');
+                const isSuccess = !isFraud;
+
+                if ((filterType === 'success' && isSuccess) || (filterType === 'fraud' && isFraud)) {
+                    row.style.display = '';
+                    if (isSuccess) {
+                        successCount++;
+                    }
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+
+            if (filterType === 'success') {
+                successCountParagraph.textContent = `Количество успешных транзакций: ${successCount}`;
+                successCountParagraph.classList.remove('hidden');
+            } else {
+                successCountParagraph.classList.add('hidden');
+            }
+        }
+
+        function resetFilter() {
+            const transactionTable = document.getElementById('transaction-table');
+            const successCountParagraph = document.getElementById('successCount');
+            const rows = transactionTable.getElementsByTagName('tr');
+
+            for (let i = 1; i < rows.length; i++) {
+                rows[i].style.display = '';
+            }
+
+            successCountParagraph.classList.add('hidden');
+        }
+
+        createFraudPercentageChart(0);
+
+        function createFraudPercentageChart(fraudPercentage) {
+            const canvas = document.getElementById('fraudPercentageChart').getContext('2d');
+            chartInstance = new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Мошеннические', 'Не мошеннические'],
+                    datasets: [{
+                        data: [fraudPercentage, 100 - fraudPercentage],
+                        backgroundColor: ['#c05d5d', '#ddd'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    title: {
+                        display: true,
+                        text: 'Процент мошеннических транзакций',
+                    },
+                },
+            });
+        }
+
+        fetch('http://localhost:3000/api/transactions', {
+            method: 'GET',
+        })
+            .then(response => response.json())
+            .then(data => {
+                const transactionTable = document.getElementById('transaction-table');
+                const successCountParagraph = document.getElementById('successCount');
+
+                transactionTable.innerHTML = '<tr><th>Column1</th><th>Customer</th></tr>';
+                successCountParagraph.classList.add('hidden');
+
+                data.forEach(transaction => {
+                    const row = transactionTable.insertRow();
+                    row.insertCell(0).textContent = transaction.Column1;
+                    row.insertCell(1).textContent = transaction.customer;
+                    if (transaction.Fraud == 1) {
+                        row.classList.add('fraud-transaction');
+                    }
+                });
+
+                const successTransactions = data.filter(transaction => transaction.Fraud !== 1);
+                const successCount = successTransactions.length;
+
+                successCountParagraph.textContent = `Количество успешных транзакций: ${successCount}`;
+                successCountParagraph.classList.remove('hidden');
+
+                const fraudPercentage = (successTransactions.length / data.length) * 100;
+
+                updateFraudPercentageChart(fraudPercentage);
+            })
+            .catch(error => console.error('Ошибка при получении данных:', error));
+
+        function updateFraudPercentageChart(fraudPercentage) {
+            chartInstance.data.datasets[0].data = [fraudPercentage, 100 - fraudPercentage];
+            chartInstance.update();
+        }
+    </script>
+</body>
+</html>

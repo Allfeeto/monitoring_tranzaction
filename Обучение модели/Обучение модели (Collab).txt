@@ -1,0 +1,83 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Проверка доступности GPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
+
+# Загрузка данных из CSV-файла
+file_path = 'C:/Users/sanme/OneDrive/Рабочий стол/fraud_dataset.csv'
+df = pd.read_csv(file_path, delimiter='|')
+
+# Преобразование категориальных переменных в числовой формат
+df['gender'] = df['gender'].map({'E': 0, 'F': 1, 'M': 2, 'U': -1})
+
+# Заполнение отсутствующих значений (если есть)
+df.fillna(value=0, inplace=True)
+
+# Удаление столбцов с неподходящими данными
+df = df.drop(['step', 'customer'], axis=1)
+
+# Разделение данных на обучающий, валидационный и тестовый наборы
+X = df.drop('fraud', axis=1)
+y = df['fraud'].values
+
+# Преобразование данных
+X = pd.get_dummies(X, columns=['age', 'zipcodeOri', 'merchant', 'zipMerchant', 'category'], drop_first=True)
+scaler = StandardScaler()
+X = torch.tensor(scaler.fit_transform(X), dtype=torch.float32).to(device)
+y = torch.tensor(y, dtype=torch.float32).to(device)
+
+# Разделение данных на обучающий, валидационный и тестовый наборы
+X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+
+# Определение архитектуры нейронной сети
+class FraudDetectionModel(nn.Module):
+    def __init__(self, input_size):
+        super(FraudDetectionModel, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(64, 1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x)
+        return x
+
+# Инициализация модели, функции потерь и оптимизатора
+model = FraudDetectionModel(X_train.shape[1]).to(device)
+criterion = nn.BCELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# Обучение модели
+epochs = 594641
+save_epochs = [10000, 100000, 200000, 300000, 400000, 500000, 594640]
+
+for epoch in range(epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train)
+    loss = criterion(outputs.squeeze(), y_train)
+    loss.backward()
+    optimizer.step()
+
+    # Валидация модели
+    if (epoch + 1) % 100 == 0:
+        model.eval()
+        with torch.no_grad():
+            val_outputs = model(X_val)
+            val_loss = criterion(val_outputs.squeeze(), y_val)
+
+        print(f'Epoch [{epoch + 1}/{epochs}], Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}')
+
+    # Сохранение модели
+    if (epoch + 1) in save_epochs:
+        torch.save(model.state_dict(), f'C:/Users/sanme/OneDrive/Рабочий стол/fraud_detection_model_epoch_{epoch + 1}.pth')
