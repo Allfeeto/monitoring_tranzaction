@@ -26,3 +26,13 @@
 HTML файл запускали на локальном сервере с помощью расширения "Live Server" в VisualStudio Code
 
 его запустить можно любыми удобными для вас способами.
+
+Откройте терминал, пройдите к каталогу проекта, введите команды:
+
+    npm init -y
+    npm install express csv-parser
+    npm install cors
+    
+затем
+
+    node server.js
