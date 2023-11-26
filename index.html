@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +10,10 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f8f8f8;
+            background-image: url('https://catherineasquithgallery.com/uploads/posts/2021-03/1614610387_167-p-zadnii-fon-dlya-fotoshopa-238.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
         }
 
         header {
@@ -20,26 +24,63 @@
         }
 
         #dashboard-container {
-            display: flex;
-            flex-direction: row;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 1em;
+        
+        }
+        header h1:hover {
+            transform: scale(1.2); /* Увеличиваем размер при наведении */
+            transition: transform 0.3s ease-in-out; /* Плавный переход */
+        }
+
+        #dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 1em;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
             padding: 1em;
         }
 
-        #dashboard, #transaction-monitoring, #manual-processing, #rule-creation {
-            flex: 1;
+        #dashboard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 1em;
+        }
+
+        #dashboard,
+        #transaction-monitoring,
+        #manual-processing,
+        #rule-creation {
             padding: 1em;
             border: 1px solid #ccc;
-            margin: 1em;
             box-sizing: border-box;
             max-height: 600px;
             overflow: auto;
             background-color: #fff;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        #dashboard:hover,
+        #transaction-monitoring:hover,
+        #manual-processing:hover,
+        #rule-creation:hover {
+            transform: scale(1.05);
         }
 
         h2 {
             color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 0.5em;
         }
 
         table {
@@ -48,7 +89,8 @@
             margin-top: 1em;
         }
 
-        th, td {
+        th,
+        td {
             border: 1px solid #ddd;
             padding: 10px;
             text-align: left;
@@ -83,6 +125,13 @@
         .hidden {
             display: none;
         }
+        .buttons{
+            display: flex;
+            text-align: center;
+        }
+
+
+
 
         button {
             background-color: #4CAF50;
@@ -91,7 +140,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin-right: 5px;
+            margin: 5px;
             transition: background-color 0.3s;
         }
 
@@ -110,6 +159,7 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s;
+            margin: 5px;
         }
 
         label:hover {
@@ -120,25 +170,28 @@
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+
         input[type="file"] {
-        display: none;
-    }
+            display: none;
+        }
 
-    label {
-        background-color: #3498db;
-        color: #fff;
-        padding: 10px;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-        display: inline-block; /* Добавленный стиль */
-    }
+        label {
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: inline-block;
+        }
 
-    label:hover {
-        background-color: #2980b9;
-    }
+        label:hover {
+            background-color: #2980b9;
+        }
+
     </style>
 </head>
+
 <body>
     <header>
         <h1>Панель мониторинга транзакций</h1>
@@ -148,11 +201,6 @@
         <div id="dashboard">
             <h2>Дашборд</h2>
             <canvas id="fraudPercentageChart" width="400" height="600"></canvas>
-            <ul>
-                <li>Статистика транзакций</li>
-                <li>Графики и диаграммы</li>
-                <li>Интересные факты</li>
-            </ul>
         </div>
 
         <div id="transaction-monitoring">
@@ -170,22 +218,24 @@
                 </div>
             </div>
             <table id="transaction-table">
-               
+
             </table>
             <p id="successCount" class="hidden"></p>
         </div>
 
         <div id="manual-processing">
             <h2>Ручная обработка</h2>
-            <label for="fileInput">Выбрать файл</label>
-            <input type="file" id="fileInput" accept=".csv" onchange="handleFileUpload()">
-            <button onclick="uploadFile(event)">Загрузить файл</button>
-            <button onclick="deleteFileAndLocalStorage()">Удалить файл и данные</button>
+            <div class="buttons">
+                <label for="fileInput">Выбрать файл</label>
+                <input type="file" id="fileInput" accept=".csv" onchange="handleFileUpload()">
+                <button onclick="uploadFile(event)">Загрузить файл</button>
+                <button onclick="deleteFileAndLocalStorage()">Удалить файл</button>
+            </div>
         </div>
 
         <div id="rule-creation">
             <h2>Создание правил</h2>
-           
+
         </div>
     </div>
 
@@ -313,15 +363,15 @@
                 formData.append('file', file);
 
                 fetch('http://localhost:3000/api/upload', {
-                    method: 'POST',
-                    body: formData,
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('File uploaded successfully:', data);
-                    fetchTransactions(); // Обновляем данные после успешной загрузки файла
-                })
-                .catch(error => console.error('Error uploading file:', error));
+                        method: 'POST',
+                        body: formData,
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('File uploaded successfully:', data);
+                        fetchTransactions(); // Обновляем данные после успешной загрузки файла
+                    })
+                    .catch(error => console.error('Error uploading file:', error));
             }
         }
 
@@ -346,14 +396,14 @@
             formData.append('filePath', filePath);
 
             fetch('http://localhost:3000/api/delete-file', {
-                method: 'POST',
-                body: formData,
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('File deleted successfully:', data);
-            })
-            .catch(error => console.error('Error deleting file:', error));
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('File deleted successfully:', data);
+                })
+                .catch(error => console.error('Error deleting file:', error));
         }
 
         function deleteFileAndLocalStorage(filePath) {
@@ -361,17 +411,17 @@
             formData.append('filePath', filePath);
 
             fetch('http://localhost:3000/api/delete-file', {
-                method: 'POST',
-                body: formData,
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('File deleted successfully:', data);
-                localStorage.clear();
-            })
-            .catch(error => console.error('Error deleting file:', error));
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('File deleted successfully:', data);
+                    localStorage.clear();
+                })
+                .catch(error => console.error('Error deleting file:', error));
         }
-        
+
         async function fetchTransactions() {
             try {
                 const response = await fetch('http://localhost:3000/api/transactions', {
@@ -413,4 +463,5 @@
         }
     </script>
 </body>
+
 </html>
