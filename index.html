@@ -6,14 +6,15 @@
     <title>Панель мониторинга транзакций</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #f8f8f8;
         }
 
         header {
             background-color: #333;
-            color: white;
+            color: #fff;
             text-align: center;
             padding: 1em;
         }
@@ -32,6 +33,13 @@
             box-sizing: border-box;
             max-height: 600px;
             overflow: auto;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #333;
         }
 
         table {
@@ -42,17 +50,17 @@
 
         th, td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 10px;
             text-align: left;
         }
 
         th {
             background-color: #333;
-            color: white;
+            color: #fff;
         }
 
         .fraud-transaction {
-            background-color: #c05d5d;
+            background-color: #ff6b6b;
         }
 
         .burger-menu {
@@ -69,11 +77,66 @@
             height: 3px;
             width: 100%;
             margin: 3px 0;
+            border-radius: 5px;
         }
 
         .hidden {
             display: none;
         }
+
+        button {
+            background-color: #4CAF50;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        label {
+            background-color: #3498db;
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        label:hover {
+            background-color: #2980b9;
+        }
+
+        canvas {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        input[type="file"] {
+        display: none;
+    }
+
+    label {
+        background-color: #3498db;
+        color: #fff;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        display: inline-block; /* Добавленный стиль */
+    }
+
+    label:hover {
+        background-color: #2980b9;
+    }
     </style>
 </head>
 <body>
@@ -114,7 +177,10 @@
 
         <div id="manual-processing">
             <h2>Ручная обработка</h2>
-            
+            <label for="fileInput">Выбрать файл</label>
+            <input type="file" id="fileInput" accept=".csv" onchange="handleFileUpload()">
+            <button onclick="uploadFile(event)">Загрузить файл</button>
+            <button onclick="deleteFileAndLocalStorage()">Удалить файл и данные</button>
         </div>
 
         <div id="rule-creation">
@@ -138,6 +204,7 @@
             const rows = transactionTable.getElementsByTagName('tr');
 
             let successCount = 0;
+            let totalCount = 0;
 
             for (let i = 1; i < rows.length; i++) {
                 const row = rows[i];
@@ -146,6 +213,7 @@
 
                 if ((filterType === 'success' && isSuccess) || (filterType === 'fraud' && isFraud)) {
                     row.style.display = '';
+                    totalCount++;
                     if (isSuccess) {
                         successCount++;
                     }
@@ -154,12 +222,18 @@
                 }
             }
 
+            const fraudPercentage = (totalCount - successCount) / totalCount * 100;
+            const successPercentage = successCount / totalCount * 100;
+
             if (filterType === 'success') {
-                successCountParagraph.textContent = `Количество успешных транзакций: ${successCount}`;
+                const successMessage = `Количество успешных транзакций: ${successCount}`;
+                successCountParagraph.textContent = successMessage;
                 successCountParagraph.classList.remove('hidden');
             } else {
                 successCountParagraph.classList.add('hidden');
             }
+
+            updateFraudPercentageChart(fraudPercentage, successPercentage);
         }
 
         function resetFilter() {
@@ -172,9 +246,12 @@
             }
 
             successCountParagraph.classList.add('hidden');
-        }
 
-        createFraudPercentageChart(0);
+            const totalTransactions = rows.length - 1;
+            const successCount = totalTransactions - document.querySelectorAll('.fraud-transaction').length;
+            const totalPercentage = (successCount / totalTransactions) * 100;
+            updateFraudPercentageChart(100 - totalPercentage, totalPercentage);
+        }
 
         function createFraudPercentageChart(fraudPercentage) {
             const canvas = document.getElementById('fraudPercentageChart').getContext('2d');
@@ -198,41 +275,141 @@
             });
         }
 
-        fetch('http://localhost:3000/api/transactions', {
-            method: 'GET',
-        })
+        function updateFraudPercentageChart(fraudPercentage, successPercentage) {
+            const canvas = document.getElementById('fraudPercentageChart');
+            const ctx = canvas.getContext('2d');
+
+            if (!chartInstance) {
+                chartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Мошеннические', 'Успешные'],
+                        datasets: [{
+                            data: [fraudPercentage, successPercentage],
+                            backgroundColor: ['#c05d5d', '#4CAF50'],
+                        }],
+                    },
+                });
+            } else {
+                chartInstance.data.datasets[0].data = [fraudPercentage, successPercentage];
+                chartInstance.update();
+            }
+        }
+
+        function handleFileUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const fileName = fileInput.value.split('\\').pop();
+            alert('Выбран файл: ' + fileName);
+        }
+
+        function uploadFile(event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('http://localhost:3000/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('File uploaded successfully:', data);
+                    fetchTransactions(); // Обновляем данные после успешной загрузки файла
+                })
+                .catch(error => console.error('Error uploading file:', error));
+            }
+        }
+
+        function saveDataToLocalStorage(data) {
+            localStorage.setItem('transactionData', JSON.stringify(data));
+        }
+
+        function getDataFromLocalStorage() {
+            const storedData = localStorage.getItem('transactionData');
+            return storedData ? JSON.parse(storedData) : null;
+        }
+
+        function updateTransactionTableWithStoredData() {
+            const storedData = getDataFromLocalStorage();
+            if (storedData) {
+                updateTransactionTable(storedData);
+            }
+        }
+
+        function deleteFile(filePath) {
+            const formData = new FormData();
+            formData.append('filePath', filePath);
+
+            fetch('http://localhost:3000/api/delete-file', {
+                method: 'POST',
+                body: formData,
+            })
             .then(response => response.json())
             .then(data => {
-                const transactionTable = document.getElementById('transaction-table');
-                const successCountParagraph = document.getElementById('successCount');
-
-                transactionTable.innerHTML = '<tr><th>Column1</th><th>Customer</th></tr>';
-                successCountParagraph.classList.add('hidden');
-
-                data.forEach(transaction => {
-                    const row = transactionTable.insertRow();
-                    row.insertCell(0).textContent = transaction.Column1;
-                    row.insertCell(1).textContent = transaction.customer;
-                    if (transaction.Fraud == 1) {
-                        row.classList.add('fraud-transaction');
-                    }
-                });
-
-                const successTransactions = data.filter(transaction => transaction.Fraud !== 1);
-                const successCount = successTransactions.length;
-
-                successCountParagraph.textContent = `Количество успешных транзакций: ${successCount}`;
-                successCountParagraph.classList.remove('hidden');
-
-                const fraudPercentage = (successTransactions.length / data.length) * 100;
-
-                updateFraudPercentageChart(fraudPercentage);
+                console.log('File deleted successfully:', data);
             })
-            .catch(error => console.error('Ошибка при получении данных:', error));
+            .catch(error => console.error('Error deleting file:', error));
+        }
 
-        function updateFraudPercentageChart(fraudPercentage) {
-            chartInstance.data.datasets[0].data = [fraudPercentage, 100 - fraudPercentage];
-            chartInstance.update();
+        function deleteFileAndLocalStorage(filePath) {
+            const formData = new FormData();
+            formData.append('filePath', filePath);
+
+            fetch('http://localhost:3000/api/delete-file', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('File deleted successfully:', data);
+                localStorage.clear();
+            })
+            .catch(error => console.error('Error deleting file:', error));
+        }
+        
+        async function fetchTransactions() {
+            try {
+                const response = await fetch('http://localhost:3000/api/transactions', {
+                    method: 'GET',
+                });
+                const data = await response.json();
+                updateTransactionTable(data);
+                saveDataToLocalStorage(data);
+            } catch (error) {
+                console.error('Ошибка при получении данных:', error);
+            }
+        }
+        updateTransactionTableWithStoredData();
+
+        function updateTransactionTable(transactions) {
+            const transactionTable = document.getElementById('transaction-table');
+            const successCountParagraph = document.getElementById('successCount');
+
+            transactionTable.innerHTML = '<tr><th>Column1</th><th>Customer</th></tr>';
+
+            transactions.forEach(transaction => {
+                const row = transactionTable.insertRow();
+                row.insertCell(0).textContent = transaction.Column1;
+                row.insertCell(1).textContent = transaction.customer;
+                if (transaction.Fraud == 1) {
+                    row.classList.add('fraud-transaction');
+                }
+            });
+
+            const successTransactions = transactions.filter(transaction => transaction.Fraud !== 1);
+            const successCount = successTransactions.length;
+
+            successCountParagraph.textContent = `Количество успешных транзакций: ${successCount}`;
+            successCountParagraph.classList.remove('hidden');
+
+            const fraudPercentage = (successTransactions.length / transactions.length) * 100;
+
+            updateFraudPercentageChart(fraudPercentage);
         }
     </script>
 </body>
