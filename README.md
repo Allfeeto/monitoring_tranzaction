@@ -43,13 +43,7 @@
 
 <b>Проверьте установлены ли у вас Node.js, VisualStudio Code</b>
 
-Откройте терминал, пройдите к каталогу проекта, введите команды:
-
-    npm init -y
-    npm install express csv-parser
-    npm install cors
-    
-затем
+Откройте терминал, пройдите к каталогу проекта, введите команду:
 
     node server.js
 
